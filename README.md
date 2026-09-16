@@ -22,6 +22,7 @@
 | 프레임워크 | Next.js (App Router), TypeScript |
 | 스타일 | Tailwind CSS |
 | 인증 | Supabase Auth (`@supabase/ssr`) |
+| 데이터베이스 | Supabase Postgres |
 | 챗봇 AI | OpenAI API |
 | PDF 인식 | pdf-parse |
 | 배포 | Vercel |
@@ -58,11 +59,11 @@ lib/
   store.ts    데이터 읽기·저장 (지금은 JSON 파일)
   supabase/   인증 클라이언트와 세션·권한 처리
 data/
-  records.json  실적·forecast 데이터
+  records.json  실적·forecast 초기 데이터 (Supabase 로 옮기기 전 원본)
   dealers.json  거래처 마스터 목록
 ```
 
 ## 참고
 
-- PoC 단계라 데이터는 JSON 파일에 저장합니다. 저장 방식을 바꿀 때 고쳐야 할 곳은 `lib/store.ts` 한 곳입니다.
+- 실적 데이터는 Supabase Postgres(`public.records`)에 저장합니다. 저장 방식을 바꿀 때 고쳐야 할 곳은 `lib/store.ts` 한 곳입니다.
 - 자세한 기획 내용은 [PRD.md](PRD.md), 개발 규칙은 [CLAUDE.md](CLAUDE.md)를 참고하세요.
