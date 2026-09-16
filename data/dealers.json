@@ -1,0 +1,247 @@
+[
+  {
+    "team": "APAC 1실",
+    "country": "Cambodia",
+    "client": "KIMTECH"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "China",
+    "client": "Jeisys China"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Hongkong",
+    "client": "Easy Medical"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Hongkong",
+    "client": "Life Care Group"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Hongkong",
+    "client": "Medi Plus"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Hongkong",
+    "client": "Norgel"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "India",
+    "client": "Skinnovation"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Indonesia",
+    "client": "I-TECH"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Indonesia",
+    "client": "Regensis"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Indonesia",
+    "client": "Vanguard"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Malaysia",
+    "client": "Vanguard"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Malaysia",
+    "client": "Venusys Medical"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Pakistan",
+    "client": "I WANT"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Philippines",
+    "client": "Vanguard"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Singapore",
+    "client": "Vanguard"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Singapore",
+    "client": "Venusys Medical"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Taiwan",
+    "client": "DensTech"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Taiwan",
+    "client": "FMTC"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Taiwan",
+    "client": "TK MED"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Taiwan",
+    "client": "V8"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Thailand",
+    "client": "Laser Engineer"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Thailand",
+    "client": "Vanguard"
+  },
+  {
+    "team": "APAC 1실",
+    "country": "Vietnam",
+    "client": "DERMAMED"
+  },
+  {
+    "team": "EU팀",
+    "country": "Bulgaria",
+    "client": "Elana Beauty"
+  },
+  {
+    "team": "EU팀",
+    "country": "Finland",
+    "client": "Ihoaketemia"
+  },
+  {
+    "team": "EU팀",
+    "country": "France",
+    "client": "X-derma"
+  },
+  {
+    "team": "EU팀",
+    "country": "Germany",
+    "client": "BeautyTech"
+  },
+  {
+    "team": "EU팀",
+    "country": "Greece",
+    "client": "Ozounis(Messer)"
+  },
+  {
+    "team": "EU팀",
+    "country": "Netherlands",
+    "client": "Nova Skin Solutions"
+  },
+  {
+    "team": "EU팀",
+    "country": "Poland",
+    "client": "2NEverpol"
+  },
+  {
+    "team": "EU팀",
+    "country": "Portugal",
+    "client": "BTL"
+  },
+  {
+    "team": "EU팀",
+    "country": "Romania",
+    "client": "SeeTryBuy"
+  },
+  {
+    "team": "EU팀",
+    "country": "Spain",
+    "client": "BTL"
+  },
+  {
+    "team": "EU팀",
+    "country": "Spain",
+    "client": "Irradia"
+  },
+  {
+    "team": "EU팀",
+    "country": "UK",
+    "client": "Healthxchange"
+  },
+  {
+    "team": "LATAM팀",
+    "country": "Argentina",
+    "client": "Aler S.A S.M"
+  },
+  {
+    "team": "LATAM팀",
+    "country": "Chile",
+    "client": "IMV"
+  },
+  {
+    "team": "LATAM팀",
+    "country": "Mexico",
+    "client": "Medestore"
+  },
+  {
+    "team": "LATAM팀",
+    "country": "Peru",
+    "client": "MOT SA"
+  },
+  {
+    "team": "MEA팀",
+    "country": "Algeria",
+    "client": "INVEST"
+  },
+  {
+    "team": "MEA팀",
+    "country": "Iraq",
+    "client": "Eblal Group"
+  },
+  {
+    "team": "MEA팀",
+    "country": "Israel",
+    "client": "Alphamedix"
+  },
+  {
+    "team": "MEA팀",
+    "country": "Jordan",
+    "client": "ASIA Med"
+  },
+  {
+    "team": "MEA팀",
+    "country": "Kuwait",
+    "client": "Al Karma"
+  },
+  {
+    "team": "MEA팀",
+    "country": "Latvia",
+    "client": "INOMEDIS"
+  },
+  {
+    "team": "MEA팀",
+    "country": "Saudi Arabia",
+    "client": "AMJAD"
+  },
+  {
+    "team": "MEA팀",
+    "country": "Turkey",
+    "client": "Mayaform"
+  },
+  {
+    "team": "MEA팀",
+    "country": "UAE",
+    "client": "MEIDCA"
+  },
+  {
+    "team": "MEA팀",
+    "country": "Ukraine",
+    "client": "BBA"
+  }
+]

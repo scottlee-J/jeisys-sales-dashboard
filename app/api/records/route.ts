@@ -28,6 +28,7 @@ export async function POST(request: Request) {
     forecast,
     actualQty,
     forecastQty,
+    mode,
   } = body ?? {};
 
   if (!client || !period || !equipment) {
@@ -48,6 +49,8 @@ export async function POST(request: Request) {
     forecast: typeof forecast === "number" ? forecast : null,
     actualQty: typeof actualQty === "number" ? actualQty : null,
     forecastQty: typeof forecastQty === "number" ? forecastQty : null,
+    // PO 업로드처럼 건별로 쌓이는 입력은 "add" 로 기존 값에 더한다.
+    mode: mode === "add" ? "add" : "overwrite",
   });
 
   return NextResponse.json(result);

@@ -26,6 +26,7 @@ export default function Chart({
   labels = { actual: "실적", forecast: "forecast" },
   unit,
   showAchievement = false,
+  showGrowth = false,
 }: {
   points: ChartPoint[];
   formatValue: (value: number) => string;
@@ -34,6 +35,9 @@ export default function Chart({
   // 실적/forecast 달성률(%)을 가로축 아래에 함께 표시할지 여부.
   // (전년 동기 비교처럼 forecast 자리에 다른 값이 들어가는 그래프에서는 의미가 없으므로 기본은 끔)
   showAchievement?: boolean;
+  // 전년 동기 대비 증감률(%)을 가로축 아래에 함께 표시할지 여부.
+  // (actual 자리엔 올해, forecast 자리엔 작년 값이 들어오는 비교 그래프 전용)
+  showGrowth?: boolean;
 }) {
   if (points.length === 0) {
     return (
@@ -104,6 +108,19 @@ export default function Chart({
           </span>
         </div>
       )}
+      {showGrowth && (
+        <div className="flex items-center gap-3 text-[11px] text-black/50 dark:text-white/50">
+          <span>전년 동기 대비 증감률:</span>
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-emerald-600 dark:bg-emerald-400" />
+            증가
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-red-500 dark:bg-red-400" />
+            감소
+          </span>
+        </div>
+      )}
 
       <div className="rounded-lg border border-black/10 bg-black/[0.02] p-2 dark:border-white/15 dark:bg-white/[0.03]">
         <svg
@@ -170,6 +187,33 @@ export default function Chart({
                   textAnchor="middle"
                   className={`text-[10px] font-semibold ${colorClass}`}
                 >
+                  {pct}%
+                </text>
+              );
+            })}
+
+          {/* 전년 동기 대비 증감률(%) — 기간 이름 바로 위에 색으로 구분해 표시 */}
+          {showGrowth &&
+            points.map((point, index) => {
+              if (index % labelStep !== 0) return null;
+              if (point.actual === null || point.forecast === null) return null;
+              if (point.forecast <= 0) return null;
+              const pct = Math.round(
+                ((point.actual - point.forecast) / point.forecast) * 100,
+              );
+              const colorClass =
+                pct >= 0
+                  ? "fill-emerald-600 dark:fill-emerald-400"
+                  : "fill-red-500 dark:fill-red-400";
+              return (
+                <text
+                  key={`growth-${point.period}`}
+                  x={toX(index)}
+                  y={HEIGHT - 26}
+                  textAnchor="middle"
+                  className={`text-[10px] font-semibold ${colorClass}`}
+                >
+                  {pct > 0 ? "+" : ""}
                   {pct}%
                 </text>
               );

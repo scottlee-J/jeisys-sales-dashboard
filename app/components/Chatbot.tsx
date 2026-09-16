@@ -10,6 +10,7 @@ export type SearchFilters = {
   clients: string[];
   equipments: string[];
   items: string[];
+  consumablesOnly?: boolean;
   periodUnit: "year" | "half" | "quarter" | "month" | null;
   measure: "amount" | "quantity" | null;
 };
@@ -98,12 +99,10 @@ export default function Chatbot({
         </button>
       </div>
 
-      {/* 접혀 있을 때는 마지막 답변 한 줄만 보여 준다. */}
+      {/* 접혀 있을 때도 마지막 답변은 (여러 줄이어도) 잘리지 않고 전부 보여 준다. */}
       {!expanded && (
-        <div className="truncate border-t border-black/10 px-4 py-2 text-sm text-black/60 dark:border-white/15 dark:text-white/60">
-          {loading
-            ? "내용을 확인하고 있습니다..."
-            : lastReply?.content.split("\n")[0]}
+        <div className="whitespace-pre-wrap border-t border-black/10 px-4 py-2 text-sm text-black/60 dark:border-white/15 dark:text-white/60">
+          {loading ? "내용을 확인하고 있습니다..." : lastReply?.content}
         </div>
       )}
 

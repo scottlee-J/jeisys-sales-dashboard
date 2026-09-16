@@ -3,9 +3,10 @@
 import { useCallback, useMemo, useState } from "react";
 import Chart, { type ChartPoint } from "./Chart";
 import Chatbot, { type SearchFilters } from "./Chatbot";
+import PoUpload from "./PoUpload";
 import { logout } from "@/app/logout/actions";
 import type { Session } from "@/lib/supabase/session";
-import type { Currency, Measure, PeriodUnit, Record } from "@/lib/types";
+import type { Currency, Dealer, Measure, PeriodUnit, Record } from "@/lib/types";
 
 const PERIOD_UNITS: { value: PeriodUnit; label: string }[] = [
   { value: "year", label: "연도별" },
@@ -16,9 +17,11 @@ const PERIOD_UNITS: { value: PeriodUnit; label: string }[] = [
 
 export default function Dashboard({
   initialRecords,
+  initialDealers,
   session,
 }: {
   initialRecords: Record[];
+  initialDealers: Dealer[];
   session: Session | null;
 }) {
   // 일반 사용자는 자기 소속 팀 데이터만 본다. 서버(records API, page.tsx)가 이미
@@ -27,6 +30,8 @@ export default function Dashboard({
     session && session.role !== "admin" ? session.team : null;
 
   const [records, setRecords] = useState<Record[]>(initialRecords);
+  // 매출 확정 여부와 무관한 거래처 마스터 목록. 입력 데이터로는 바뀌지 않으므로 고정값으로 둔다.
+  const [dealers] = useState<Dealer[]>(initialDealers);
   const [selectedTeams, setSelectedTeams] = useState<string[]>(
     restrictedTeam ? [restrictedTeam] : [],
   );
@@ -40,6 +45,12 @@ export default function Dashboard({
   const [rate, setRate] = useState<{ rate: number; date: string } | null>(null);
   const [rateError, setRateError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  // 아직 거래처가 확정되지 않은 매출("OO (거래처별 미확정)")은 화면에서 항상 숨긴다.
+  // 데이터를 지우는 게 아니라 화면에만 안 보이게 하는 것이다.
+  const visibleRecords = useMemo(
+    () => records.filter((r) => !r.client.includes("거래처별 미확정")),
+    [records],
+  );
 
   // 챗봇으로 데이터가 저장된 뒤 최신 목록을 다시 불러온다.
   const reloadRecords = useCallback(async () => {
@@ -50,15 +61,39 @@ export default function Dashboard({
 
   // 챗봇으로 조회하면 말한 조건이 그대로 화면 조건으로 설정된다.
   // 단, 일반 사용자는 자기 팀 밖으로 못 나가게 팀 조건은 고정해 둔다.
-  const applySearch = useCallback((filters: SearchFilters) => {
-    setSelectedTeams(restrictedTeam ? [restrictedTeam] : (filters.teams ?? []));
-    setSelectedCountries(filters.countries ?? []);
-    setSelectedClients(filters.clients ?? []);
-    setSelectedEquipments(filters.equipments ?? []);
-    setSelectedItems(filters.items ?? []);
-    if (filters.periodUnit) setPeriodUnit(filters.periodUnit);
-    if (filters.measure) setMeasure(filters.measure);
-  }, [restrictedTeam]);
+  const applySearch = useCallback(
+    (filters: SearchFilters) => {
+      const teams = restrictedTeam ? [restrictedTeam] : (filters.teams ?? []);
+      const countries = filters.countries ?? [];
+      const clients = filters.clients ?? [];
+      const equipments = filters.equipments ?? [];
+
+      setSelectedTeams(teams);
+      setSelectedCountries(countries);
+      setSelectedClients(clients);
+      setSelectedEquipments(equipments);
+
+      // "소모품"만 말했을 때는 방금 고른 조건 기준으로 "장비"(본체)만 빼고 나머지
+      // 품목을 전부 골라 준다. (state 는 비동기라 기존 items 메모를 못 쓰므로 직접 다시 좁힌다)
+      if (filters.consumablesOnly) {
+        const consumables = unique(
+          scope(visibleRecords, {
+            selectedTeams: teams,
+            selectedCountries: countries,
+            selectedClients: clients,
+            selectedEquipments: equipments,
+          }).map((r) => r.item),
+        ).filter((item) => item !== "장비");
+        setSelectedItems(consumables);
+      } else {
+        setSelectedItems(filters.items ?? []);
+      }
+
+      if (filters.periodUnit) setPeriodUnit(filters.periodUnit);
+      if (filters.measure) setMeasure(filters.measure);
+    },
+    [restrictedTeam, visibleRecords],
+  );
 
   // 원화로 볼 때만 서울외국환중개의 매매기준율을 불러온다.
   const changeCurrency = useCallback(
@@ -87,39 +122,47 @@ export default function Dashboard({
   // 상위 조건을 고르면 그에 해당하는 하위 목록만 보여 준다.
   // (팀 → 국가 → 거래처 → 장비 순서로 좁혀진다)
   const teams = useMemo(
-    () => unique(records.map((r) => r.team)),
-    [records],
+    () => unique(visibleRecords.map((r) => r.team)),
+    [visibleRecords],
   );
   const countries = useMemo(
-    () => unique(scope(records, { selectedTeams }).map((r) => r.country)),
-    [records, selectedTeams],
+    () => unique(scope(visibleRecords, { selectedTeams }).map((r) => r.country)),
+    [visibleRecords, selectedTeams],
   );
-  const clients = useMemo(
-    () =>
-      unique(
-        scope(records, { selectedTeams, selectedCountries }).map(
-          (r) => r.client,
-        ),
-      ),
-    [records, selectedTeams, selectedCountries],
-  );
+  // 거래처는 "실적이 확정된 거래처"만 보여 주면 매출을 못 번 것처럼 보이는 실제 거래처가
+  // 통째로 숨어 버린다(예: 취급 장비가 매트릭스에 여러 후보로 걸려 "미확정"에 묶인 경우).
+  // 그래서 실적 데이터의 거래처 + 매트릭스 기준 거래처 마스터 목록을 합쳐서 보여 준다.
+  const clients = useMemo(() => {
+    const fromRecords = scope(visibleRecords, {
+      selectedTeams,
+      selectedCountries,
+    }).map((r) => r.client);
+    const fromDealers = dealers
+      .filter(
+        (d) =>
+          (selectedTeams.length === 0 || selectedTeams.includes(d.team)) &&
+          (selectedCountries.length === 0 || selectedCountries.includes(d.country)),
+      )
+      .map((d) => d.client);
+    return unique([...fromRecords, ...fromDealers]);
+  }, [visibleRecords, dealers, selectedTeams, selectedCountries]);
   // 거래처마다 취급하는 장비가 다르므로, 거래처를 고르면 그 거래처의 장비만 남는다.
   const equipments = useMemo(
     () =>
       unique(
-        scope(records, {
+        scope(visibleRecords, {
           selectedTeams,
           selectedCountries,
           selectedClients,
         }).map((r) => r.equipment),
       ),
-    [records, selectedTeams, selectedCountries, selectedClients],
+    [visibleRecords, selectedTeams, selectedCountries, selectedClients],
   );
   // 장비를 고르면 그 장비에 속한 품목(소모품)만 남는다.
   // "장비"(본체) 는 항상 맨 앞에 두고 소모품을 이름 순으로 보여 준다.
   const items = useMemo(() => {
     const list = unique(
-      scope(records, {
+      scope(visibleRecords, {
         selectedTeams,
         selectedCountries,
         selectedClients,
@@ -131,11 +174,11 @@ export default function Dashboard({
       if (b === "장비") return 1;
       return a.localeCompare(b);
     });
-  }, [records, selectedTeams, selectedCountries, selectedClients, selectedEquipments]);
+  }, [visibleRecords, selectedTeams, selectedCountries, selectedClients, selectedEquipments]);
 
   // 품목 옆에 참고용 표준 단가를 작게 보여 주기 위한 이름 → "$40" 형태 맵
   const itemPrices = useMemo(() => {
-    const scoped = scope(records, {
+    const scoped = scope(visibleRecords, {
       selectedTeams,
       selectedCountries,
       selectedClients,
@@ -148,12 +191,12 @@ export default function Dashboard({
       }
     }
     return prices;
-  }, [records, selectedTeams, selectedCountries, selectedClients, selectedEquipments]);
+  }, [visibleRecords, selectedTeams, selectedCountries, selectedClients, selectedEquipments]);
 
   // 조건을 고르지 않으면 전체를 선택한 것으로 보고 상위 단위 합계를 보여 준다.
   const filtered = useMemo(
     () =>
-      scope(records, {
+      scope(visibleRecords, {
         selectedTeams,
         selectedCountries,
         selectedClients,
@@ -161,7 +204,7 @@ export default function Dashboard({
         selectedItems,
       }),
     [
-      records,
+      visibleRecords,
       selectedTeams,
       selectedCountries,
       selectedClients,
@@ -214,7 +257,19 @@ export default function Dashboard({
       }
     >();
 
+    // 분기별/월별은 작년 데이터까지 섞여 기간이 밀리지 않도록, 가장 최근 연도(올해)만
+    // 1월(1분기)부터 보여 준다. (연도별/반기별은 기존처럼 최근 12개 기간 그대로)
+    const years = filtered.map((r) => Number(r.period.slice(0, 4)));
+    const latestYear = years.length ? Math.max(...years) : null;
+
     for (const record of filtered) {
+      if (
+        (periodUnit === "quarter" || periodUnit === "month") &&
+        latestYear !== null &&
+        Number(record.period.slice(0, 4)) !== latestYear
+      ) {
+        continue;
+      }
       const { key, label } = toBucket(record.period, periodUnit);
       const current = map.get(key) ?? {
         label,
@@ -456,6 +511,9 @@ export default function Dashboard({
       {/* 입력과 조회를 모두 챗봇으로 처리하므로 화면 맨 위에 둔다. */}
       <Chatbot onSaved={reloadRecords} onSearch={applySearch} />
 
+      <PoUpload onSaved={reloadRecords} />
+
+
       {/* 팀 → 국가 → 거래처 → 장비 → 품목 순서로 한 줄씩 쌓아서 보여 준다. */}
       <section className="divide-y divide-black/10 overflow-hidden rounded-lg border border-black/10 dark:divide-white/10 dark:border-white/15">
         {restrictedTeam ? (
@@ -590,6 +648,7 @@ export default function Dashboard({
                 actual: `${comparison.thisYear}년 실적`,
                 forecast: `${comparison.lastYear}년 실적`,
               }}
+              showGrowth
             />
           ) : (
             <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-black/15 text-sm text-black/60 dark:border-white/20 dark:text-white/60">

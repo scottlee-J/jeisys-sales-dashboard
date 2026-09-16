@@ -1,10 +1,12 @@
 import { promises as fs } from "fs";
 import path from "path";
-import type { Record } from "./types";
+import type { Dealer, Record } from "./types";
 
 // PoC 단계에서는 로컬 JSON 파일에 데이터를 저장한다.
 // 배포 시 Vercel Postgres로 교체할 부분은 이 파일 하나뿐이다.
 const DATA_FILE = path.join(process.cwd(), "data", "records.json");
+// 거래처별_취급제품_매트릭스 기준으로 미리 뽑아 둔 거래처 마스터 목록(읽기 전용).
+const DEALERS_FILE = path.join(process.cwd(), "data", "dealers.json");
 
 // 거래처/기간/장비/품목 조합으로 데이터의 고유 키를 만든다.
 // (팀과 국가는 거래처에 따라 정해지므로 키에서 제외)
@@ -23,6 +25,16 @@ export async function readRecords(): Promise<Record[]> {
     return JSON.parse(raw) as Record[];
   } catch {
     // 파일이 아직 없으면 빈 목록으로 시작한다.
+    return [];
+  }
+}
+
+// 실적 확정 여부와 상관없이, 실제로 존재하는 거래처 전체 목록을 읽어 온다.
+export async function readDealers(): Promise<Dealer[]> {
+  try {
+    const raw = await fs.readFile(DEALERS_FILE, "utf-8");
+    return JSON.parse(raw) as Dealer[];
+  } catch {
     return [];
   }
 }
@@ -46,6 +58,8 @@ export async function saveRecord(input: {
   actualQty: number | null;
   forecastQty: number | null;
   standardPrice?: number | null;
+  // "add" 면 기존 값에 더한다 (PO 처럼 건별로 쌓이는 주문). 기본은 덮어쓰기.
+  mode?: "overwrite" | "add";
 }): Promise<{ record: Record; overwritten: boolean; previous: Record | null }> {
   const records = await readRecords();
   const key = makeKey(input.client, input.period, input.equipment, input.item);
@@ -57,6 +71,14 @@ export async function saveRecord(input: {
   // 팀과 국가를 따로 말하지 않았으면 같은 거래처의 기존 데이터에서 가져온다.
   const sameClient = records.find((r) => r.client === input.client);
 
+  // "add" 모드면 기존 값에 더하고, 아니면 이번 값으로 덮어쓴다.
+  // (이번에 값을 주지 않은 항목은 두 모드 모두 기존 값을 그대로 유지한다)
+  const merge = (next: number | null, prev: number | null | undefined) => {
+    if (next === null) return prev ?? null;
+    if (input.mode === "add") return (prev ?? 0) + next;
+    return next;
+  };
+
   const record: Record = {
     team: input.team ?? previous?.team ?? sameClient?.team ?? "미지정",
     country:
@@ -65,11 +87,10 @@ export async function saveRecord(input: {
     period: input.period,
     equipment: input.equipment,
     item: input.item,
-    // 이번에 값을 주지 않은 항목은 기존 값을 유지한다.
-    actual: input.actual ?? previous?.actual ?? null,
-    forecast: input.forecast ?? previous?.forecast ?? null,
-    actualQty: input.actualQty ?? previous?.actualQty ?? null,
-    forecastQty: input.forecastQty ?? previous?.forecastQty ?? null,
+    actual: merge(input.actual, previous?.actual),
+    forecast: merge(input.forecast, previous?.forecast),
+    actualQty: merge(input.actualQty, previous?.actualQty),
+    forecastQty: merge(input.forecastQty, previous?.forecastQty),
     standardPrice: input.standardPrice ?? previous?.standardPrice ?? null,
     updatedAt: new Date().toISOString(),
   };

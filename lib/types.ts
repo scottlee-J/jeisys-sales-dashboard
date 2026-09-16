@@ -16,6 +16,15 @@ export type Record = {
   updatedAt: string; // 마지막 저장 시각
 };
 
+// 거래처 마스터 목록 한 건. 실제 매출(Record) 유무와 상관없이,
+// "거래처별_취급제품_매트릭스" 기준으로 실존이 확인된 거래처를 나타낸다.
+// 화면의 거래처 목록은 이 목록 + 실적 데이터의 거래처를 합쳐서 보여 준다.
+export type Dealer = {
+  team: string;
+  country: string;
+  client: string;
+};
+
 // 기간을 묶어서 보는 단위
 export type PeriodUnit = "month" | "quarter" | "half" | "year";
 
