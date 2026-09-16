@@ -45,3 +45,6 @@ next-env.d.ts
 /.bkit
 /.claude
 /supabase/.temp
+
+.vercel
+.env*
