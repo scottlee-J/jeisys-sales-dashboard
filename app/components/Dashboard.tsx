@@ -298,7 +298,8 @@ export default function Dashboard({
         .sort(([a], [b]) => a.localeCompare(b))
         // 수치가 겹치지 않도록 가장 최근 12개 기간까지만 보여 준다.
         .slice(-12)
-        .map(([, value]) => value)
+        // key 는 요약 카드에 "어떤 기간 기준인지" 표기할 때 쓴다.
+        .map(([key, value]) => ({ key, ...value }))
     );
   }, [filtered, periodUnit]);
 
@@ -329,20 +330,21 @@ export default function Dashboard({
     [buckets, measure, exchange],
   );
 
-  // 요약 카드에는 금액과 수량을 함께 보여 준다.
-  const totals = useMemo(
-    () =>
-      buckets.reduce(
-        (sum, bucket) => ({
-          actual: sum.actual + (bucket.actual ?? 0),
-          forecast: sum.forecast + (bucket.forecast ?? 0),
-          actualQty: sum.actualQty + (bucket.actualQty ?? 0),
-          forecastQty: sum.forecastQty + (bucket.forecastQty ?? 0),
-        }),
-        { actual: 0, forecast: 0, actualQty: 0, forecastQty: 0 },
-      ),
-    [buckets],
-  );
+  // 요약 카드는 그래프에 보이는 전체 기간의 합이 아니라, 선택한 기간 단위의
+  // 가장 마지막 기간(올해 / 이번 반기 / 이번 분기 / 이번 달)만 보여 준다.
+  // 앞으로의 forecast 만 있는 기간은 건너뛰고, 실적이 들어온 마지막 기간을 쓴다.
+  const latestBucket =
+    [...buckets].reverse().find((bucket) => bucket.actual !== null) ??
+    buckets.at(-1) ??
+    null;
+  const totals = {
+    actual: latestBucket?.actual ?? 0,
+    forecast: latestBucket?.forecast ?? 0,
+    actualQty: latestBucket?.actualQty ?? 0,
+    forecastQty: latestBucket?.forecastQty ?? 0,
+  };
+  // 카드에 "어떤 기간 기준인지" 적어 준다. (예: 2026년 3분기)
+  const totalsPeriod = latestBucket ? toPeriodCaption(latestBucket.key) : null;
 
   const achievement =
     totals.forecast > 0
@@ -421,8 +423,8 @@ export default function Dashboard({
               국가별 대리점 실적 · Forecast 대시보드
             </h1>
             <p className="text-sm text-black/60 dark:text-white/60">
-              조건을 고르지 않으면 전체 합계를 보여 줍니다. 합계와 그래프는
-              가장 최근 12개 기간 기준이며, 금액은 달러(USD)로 저장됩니다.
+              조건을 고르지 않으면 전체 합계를 보여 줍니다. 금액은
+              달러(USD)로 저장됩니다.
             </p>
           </div>
           {session && (
@@ -594,16 +596,19 @@ export default function Dashboard({
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
-          label="실적 합계"
+          label={`실적 합계${totalsPeriod ? ` · ${totalsPeriod}` : ""}`}
           value={formatFull(totals.actual * amountExchange, currency)}
           sub={`${formatQuantity(totals.actualQty)}개`}
         />
         <SummaryCard
-          label="forecast 합계"
+          label={`forecast 합계${totalsPeriod ? ` · ${totalsPeriod}` : ""}`}
           value={formatFull(totals.forecast * amountExchange, currency)}
           sub={`${formatQuantity(totals.forecastQty)}개`}
         />
-        <SummaryCard label="달성률" value={`${achievement}%`} />
+        <SummaryCard
+          label={`달성률${totalsPeriod ? ` · ${totalsPeriod}` : ""}`}
+          value={`${achievement}%`}
+        />
         <SummaryCard
           label="전년 동기 대비"
           value={
@@ -728,6 +733,19 @@ function toBucket(period: string, unit: PeriodUnit) {
     return { key: `${year}-Q${quarter}`, label: `${year} ${quarter}분기` };
   }
   return { key: period, label: period };
+}
+
+// 요약 카드에 붙일 기간 표기. toBucket 이 만든 key 를 사람이 읽는 말로 바꾼다.
+// (2026 → 2026년, 2026-H2 → 2026년 하반기, 2026-Q3 → 2026년 3분기, 2026-08 → 2026년 8월)
+function toPeriodCaption(key: string) {
+  const year = key.slice(0, 4);
+  const rest = key.slice(5);
+  if (!rest) return `${year}년`;
+  if (rest.startsWith("H")) {
+    return `${year}년 ${rest === "H1" ? "상반기" : "하반기"}`;
+  }
+  if (rest.startsWith("Q")) return `${year}년 ${rest.slice(1)}분기`;
+  return `${year}년 ${Number(rest)}월`;
 }
 
 // 요약 카드처럼 넓은 곳에서 쓰는 표기.
